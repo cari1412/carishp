@@ -24,10 +24,13 @@ export default function AuthModal({
   const { login } = useCustomer();
 
   const handleSignIn = () => {
+    console.log('Sign In clicked');
     // Сохраняем URL для возврата после авторизации
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('auth_redirect', window.location.pathname);
+      console.log('Saved redirect path:', window.location.pathname);
     }
+    console.log('Calling login function');
     login();
   };
 

@@ -48,6 +48,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = () => {
+    console.log('Login function called in context');
     // Редирект на страницу входа
     window.location.href = '/auth/login';
   };
