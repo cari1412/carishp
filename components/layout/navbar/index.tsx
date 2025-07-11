@@ -1,6 +1,8 @@
 // components/layout/navbar/index.tsx
 'use client';
 
+import AuthModal from '@/app/auth/auth-modal';
+import { useCustomer } from '@/lib/shopify/customer-context';
 import { useCart } from 'components/cart/cart-context';
 import CartModal from 'components/cart/modal';
 import LogoSquare from 'components/logo-square';
@@ -52,7 +54,9 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [isLoadingCollections, setIsLoadingCollections] = useState<boolean>(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const { cart } = useCart();
+  const { customer, isAuthenticated, logout } = useCustomer();
   const cartItemsCount = cart?.lines.reduce((total, line) => total + line.quantity, 0) || 0;
 
   // Load collections when menu opens
@@ -79,6 +83,11 @@ export function Navbar() {
   };
 
   const handleMenuItemClick = () => {
+    setIsMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await logout();
     setIsMenuOpen(false);
   };
 
@@ -193,11 +202,18 @@ export function Navbar() {
                           </div>
                         )}
                         
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer text-destructive hover:text-destructive focus:text-destructive">
-                          <LogOut className="w-4 h-4" />
-                          <span className="ml-2">Logout</span>
-                        </DropdownMenuItem>
+                        {isAuthenticated && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="cursor-pointer text-destructive hover:text-destructive focus:text-destructive"
+                              onClick={handleLogout}
+                            >
+                              <LogOut className="w-4 h-4" />
+                              <span className="ml-2">Logout</span>
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </motion.div>
                     </DropdownMenuContent>
                   )}
@@ -223,7 +239,9 @@ export function Navbar() {
                     aria-label="User profile"
                   >
                     <User className="w-8 h-8 mb-1" />
-                    <span className="text-xs font-medium">Login</span>
+                    <span className="text-xs font-medium">
+                      {isAuthenticated ? customer?.firstName || 'Account' : 'Login'}
+                    </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -232,31 +250,50 @@ export function Navbar() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Link href="/profile" className="flex items-center w-full">
-                        <User className="w-4 h-4 mr-2" />
-                        Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Link href="/orders" className="flex items-center w-full">
-                        <Package className="w-4 h-4 mr-2" />
-                        Orders
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Link href="/settings" className="flex items-center w-full">
-                        <Settings className="w-4 h-4 mr-2" />
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer text-destructive hover:text-destructive focus:text-destructive">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Logout
-                    </DropdownMenuItem>
+                    {isAuthenticated ? (
+                      <>
+                        <DropdownMenuLabel>
+                          {customer?.email}
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Link href="/account" className="flex items-center w-full">
+                            <User className="w-4 h-4 mr-2" />
+                            My Account
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Link href="/account/orders" className="flex items-center w-full">
+                            <Package className="w-4 h-4 mr-2" />
+                            Orders
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Link href="/account/settings" className="flex items-center w-full">
+                            <Settings className="w-4 h-4 mr-2" />
+                            Settings
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="cursor-pointer text-destructive hover:text-destructive focus:text-destructive"
+                          onClick={logout}
+                        >
+                          <LogOut className="w-4 h-4 mr-2" />
+                          Logout
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      <>
+                        <DropdownMenuItem 
+                          className="cursor-pointer"
+                          onClick={() => setShowAuthModal(true)}
+                        >
+                          <User className="w-4 h-4 mr-2" />
+                          Sign In / Sign Up
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </motion.div>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -285,6 +322,12 @@ export function Navbar() {
           </div>
         </div>
       </nav>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)}
+      />
     </>
   );
 }

@@ -11,6 +11,7 @@ import { baseUrl } from 'lib/utils';
 import { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import './globals.css';
+import { LayoutProviders } from './layout-client';
 import { Providers } from './providers';
 
 const { SITE_NAME } = process.env;
@@ -39,19 +40,21 @@ export default async function RootLayout({
     <html lang="en" className={GeistSans.variable}>
       <body className="bg-neutral-50 text-black selection:bg-teal-300 dark:bg-neutral-900 dark:text-white dark:selection:bg-pink-500 dark:selection:text-white">
         <Providers>
-          <CartProvider cartPromise={cart}>
-            <Navbar />
-            <BreadcrumbNav />
-            <main className="pb-20 md:pb-0">
-              {children}
-              <Toaster closeButton />
-              <WelcomeToast />
-            </main>
-            {/* Mobile Bottom Navigation */}
-            <MobileBottomNav />
-            {/* Notification Container for wishlist notifications */}
-            <NotificationContainer />
-          </CartProvider>
+          <LayoutProviders>
+            <CartProvider cartPromise={cart}>
+              <Navbar />
+              <BreadcrumbNav />
+              <main className="pb-20 md:pb-0">
+                {children}
+                <Toaster closeButton />
+                <WelcomeToast />
+              </main>
+              {/* Mobile Bottom Navigation */}
+              <MobileBottomNav />
+              {/* Notification Container for wishlist notifications */}
+              <NotificationContainer />
+            </CartProvider>
+          </LayoutProviders>
         </Providers>
       </body>
     </html>

@@ -1,9 +1,10 @@
 'use client';
 
+import { useCustomer } from '@/lib/shopify/customer-context';
 import { Dialog, Transition } from '@headlessui/react';
 import Price from 'components/price';
 import { motion } from 'framer-motion';
-import { Heart, LogIn, ShoppingCart, X } from 'lucide-react';
+import { Heart, ShoppingCart, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Fragment } from 'react';
@@ -14,18 +15,15 @@ interface WishlistModalProps {
   onCloseAction: () => void;
 }
 
-// Mock auth check - замените на вашу реальную проверку авторизации
-const useAuth = () => {
-  // TODO: Implement real auth check
-  return { isAuthenticated: false, user: null };
-};
-
 export default function WishlistModal({ isOpen, onCloseAction }: WishlistModalProps) {
   const { favorites, removeFromFavorites, clearFavorites, isHydrated } = useFavoritesStore();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useCustomer();
   
   // Используем локальное состояние для избранных товаров после гидратации
   const displayFavorites = isHydrated ? favorites : [];
+
+  // Этот компонент теперь открывается только для авторизованных пользователей
+  // так как проверка происходит в WishlistIcon
 
   return (
     <Transition show={isOpen} as={Fragment}>
@@ -74,40 +72,7 @@ export default function WishlistModal({ isOpen, onCloseAction }: WishlistModalPr
 
                 {/* Content */}
                 <div className="p-6">
-                  {!isAuthenticated ? (
-                    // Not Authenticated View
-                    <div className="text-center py-12">
-                      <div className="w-20 h-20 mx-auto mb-6 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center">
-                        <Heart className="w-10 h-10 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <h3 className="text-2xl font-semibold mb-2">Sign in to view your wishlist</h3>
-                      <p className="text-neutral-600 dark:text-neutral-400 mb-8 max-w-md mx-auto">
-                        Create an account or sign in to save and sync your favorite items across all your devices
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link
-                          href="/login"
-                          className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                          onClick={onCloseAction}
-                        >
-                          <LogIn className="w-5 h-5" />
-                          Sign In
-                        </Link>
-                        <Link
-                          href="/register"
-                          className="inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
-                          onClick={onCloseAction}
-                        >
-                          Create Account
-                        </Link>
-                      </div>
-                      {displayFavorites.length > 0 && (
-                        <p className="mt-6 text-sm text-neutral-500">
-                          You have {displayFavorites.length} items waiting in your wishlist
-                        </p>
-                      )}
-                    </div>
-                  ) : displayFavorites.length === 0 ? (
+                  {displayFavorites.length === 0 ? (
                     // Empty Wishlist
                     <div className="text-center py-12">
                       <div className="w-20 h-20 mx-auto mb-6 bg-neutral-100 dark:bg-neutral-900 rounded-full flex items-center justify-center">

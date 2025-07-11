@@ -1,8 +1,10 @@
 'use client';
 
-import clsx from 'clsx';
+import AuthModal from '@/app/auth/auth-modal';
+import { useCustomer } from '@/lib/shopify/customer-context';
 import { Dialog, Transition } from '@headlessui/react';
 import { ShoppingCartIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import clsx from 'clsx';
 import LoadingDots from 'components/loading-dots';
 import Price from 'components/price';
 import { DEFAULT_OPTION } from 'lib/constants';
@@ -23,7 +25,9 @@ type MerchandiseSearchParams = {
 
 export default function CartModal() {
   const { cart, updateCartItem } = useCart();
+  const { isAuthenticated } = useCustomer();
   const [isOpen, setIsOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const quantityRef = useRef(cart?.totalQuantity);
   const openCart = () => setIsOpen(true);
   const closeCart = () => setIsOpen(false);
@@ -46,6 +50,15 @@ export default function CartModal() {
       quantityRef.current = cart?.totalQuantity;
     }
   }, [isOpen, cart?.totalQuantity, quantityRef]);
+
+  const handleCheckout = async (e: React.FormEvent) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      setShowAuthModal(true);
+      // Сохраняем намерение пользователя перейти к checkout
+      sessionStorage.setItem('pending_checkout', 'true');
+    }
+  };
 
   return (
     <>
@@ -215,7 +228,7 @@ export default function CartModal() {
                       />
                     </div>
                   </div>
-                  <form action={redirectToCheckout}>
+                  <form action={redirectToCheckout} onSubmit={handleCheckout}>
                     <CheckoutButton />
                   </form>
                 </div>
@@ -224,6 +237,14 @@ export default function CartModal() {
           </Transition.Child>
         </Dialog>
       </Transition>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)}
+        title="Sign in to checkout"
+        description="Create an account or sign in to complete your purchase"
+      />
     </>
   );
 }

@@ -1,6 +1,8 @@
 // components/layout/navbar/mobile-bottom-nav.tsx
 'use client';
 
+import AuthModal from '@/app/auth/auth-modal';
+import { useCustomer } from '@/lib/shopify/customer-context';
 import {
   HeartIcon,
   HomeIcon,
@@ -37,11 +39,12 @@ const navigationItems = [
   },
   {
     name: 'Wishlist',
-    href: '/wishlist', // Изменил на /wishlist чтобы не конфликтовало с модалкой
+    href: '/wishlist',
     icon: HeartIcon,
     activeIcon: HeartIconSolid,
     showFavoritesBadge: true,
-    isModal: true, // Флаг для открытия модалки
+    isModal: true,
+    requiresAuth: true,
   },
   {
     name: 'Cart',
@@ -52,9 +55,10 @@ const navigationItems = [
   },
   {
     name: 'Profile',
-    href: '/profile',
+    href: '/account',
     icon: UserIcon,
     activeIcon: UserIconSolid,
+    requiresAuth: true,
   },
 ];
 
@@ -62,13 +66,36 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const { cart } = useCart();
   const { getFavoritesCount, isHydrated } = useFavoritesStore();
+  const { isAuthenticated } = useCustomer();
   const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalProps, setAuthModalProps] = useState({
+    title: "Sign in to continue",
+    description: "Create an account or sign in to access this feature"
+  });
   
   const totalQuantity = cart?.lines.reduce((total, line) => total + line.quantity, 0) || 0;
   const favoritesCount = isHydrated ? getFavoritesCount() : 0;
 
   const handleNavClick = (e: React.MouseEvent, item: typeof navigationItems[0]) => {
-    if (item.isModal) {
+    if (item.requiresAuth && !isAuthenticated) {
+      e.preventDefault();
+      
+      // Customize auth modal based on which item was clicked
+      if (item.name === 'Wishlist') {
+        setAuthModalProps({
+          title: "Sign in to view your wishlist",
+          description: "Create an account or sign in to save and sync your favorite items across all your devices"
+        });
+      } else if (item.name === 'Profile') {
+        setAuthModalProps({
+          title: "Sign in to your account",
+          description: "Access your orders, settings, and personal information"
+        });
+      }
+      
+      setShowAuthModal(true);
+    } else if (item.isModal) {
       e.preventDefault();
       setIsWishlistModalOpen(true);
     }
@@ -99,8 +126,8 @@ export default function MobileBottomNav() {
                       {totalQuantity > 99 ? '99+' : totalQuantity}
                     </span>
                   )}
-                  {/* Favorites Badge */}
-                  {item.showFavoritesBadge && favoritesCount > 0 && (
+                  {/* Favorites Badge - только для авторизованных */}
+                  {item.showFavoritesBadge && isAuthenticated && favoritesCount > 0 && (
                     <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-purple-600 text-white text-xs flex items-center justify-center font-medium">
                       {favoritesCount > 99 ? '99+' : favoritesCount}
                     </span>
@@ -118,7 +145,7 @@ export default function MobileBottomNav() {
               </>
             );
 
-            if (item.isModal) {
+            if (item.isModal || item.requiresAuth) {
               return (
                 <button
                   key={item.name}
@@ -147,6 +174,14 @@ export default function MobileBottomNav() {
       <WishlistModal 
         isOpen={isWishlistModalOpen} 
         onCloseAction={() => setIsWishlistModalOpen(false)} 
+      />
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)}
+        title={authModalProps.title}
+        description={authModalProps.description}
       />
     </>
   );
