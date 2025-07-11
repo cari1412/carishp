@@ -1,9 +1,9 @@
 import Link from 'next/link';
 
 interface AuthErrorPageProps {
-  searchParams: {
+  searchParams: Promise<{
     error?: string;
-  };
+  }>;
 }
 
 const errorMessages: Record<string, string> = {
@@ -16,8 +16,9 @@ const errorMessages: Record<string, string> = {
   default: 'Произошла ошибка авторизации',
 };
 
-export default function AuthErrorPage({ searchParams }: AuthErrorPageProps) {
-  const errorCode = searchParams.error || 'default';
+export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps) {
+  const params = await searchParams;
+  const errorCode = params.error || 'default';
   const errorMessage = errorMessages[errorCode] || errorMessages.default;
 
   return (
