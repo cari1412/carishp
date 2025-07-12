@@ -1,8 +1,8 @@
 // lib/shopify/customer-context.tsx
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Customer } from './customer-account';
 
 interface CustomerContextType {
@@ -16,59 +16,52 @@ interface CustomerContextType {
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
 
+// Компонент для обработки auth параметра
+function AuthHandler({ onAuthSuccess }: { onAuthSuccess: () => void }) {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    if (searchParams.get('auth') === 'success') {
+      console.log('Auth success detected, refreshing customer data...');
+      onAuthSuccess();
+      
+      // Убираем параметр из URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('auth');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [searchParams, onAuthSuccess]);
+  
+  return null;
+}
+
 export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Проверяем авторизацию при загрузке
-  useEffect(() => {
-    checkAuth();
-    
-    // Проверяем cookie auth_completed
-    const checkAuthCompleted = setInterval(() => {
-      const authCompleted = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth_completed='))
-        ?.split('=')[1];
-        
-      if (authCompleted === 'true') {
-        // Удаляем cookie
-        document.cookie = 'auth_completed=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        
-        // Обновляем состояние
-        checkAuth();
-        
-        // Получаем сохраненный путь для редиректа
-        const redirectPath = sessionStorage.getItem('auth_redirect');
-        if (redirectPath) {
-          sessionStorage.removeItem('auth_redirect');
-          router.push(redirectPath);
-        }
-      }
-    }, 500);
-    
-    // Очищаем интервал через 10 секунд
-    setTimeout(() => clearInterval(checkAuthCompleted), 10000);
-    
-    return () => clearInterval(checkAuthCompleted);
-  }, [router]);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
+    console.log('Checking auth status...');
     try {
       const response = await fetch('/api/customer/me', {
         credentials: 'include',
         cache: 'no-store'
       });
       
+      console.log('Auth check response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Customer data received:', !!data.customer);
+        
         if (data.customer) {
           setCustomer(data.customer);
+          console.log('Customer set:', data.customer.email);
         } else {
           setCustomer(null);
         }
       } else {
+        console.log('Auth check failed with status:', response.status);
         setCustomer(null);
       }
     } catch (error) {
@@ -77,7 +70,29 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Проверяем авторизацию при загрузке
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const handleAuthSuccess = useCallback(async () => {
+    console.log('Handling auth success...');
+    setIsLoading(true);
+    await checkAuth();
+    
+    // Проверяем редирект
+    const redirectPath = sessionStorage.getItem('auth_redirect');
+    console.log('Redirect path from session:', redirectPath);
+    
+    if (redirectPath && redirectPath !== '/') {
+      sessionStorage.removeItem('auth_redirect');
+      router.push(redirectPath);
+    } else {
+      router.push('/account');
+    }
+  }, [checkAuth, router]);
 
   const refreshCustomer = async () => {
     setIsLoading(true);
@@ -85,13 +100,12 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = (redirectTo?: string) => {
-    // Сохраняем текущий URL для редиректа после входа
     if (typeof window !== 'undefined') {
       const redirectUrl = redirectTo || window.location.pathname;
       sessionStorage.setItem('auth_redirect', redirectUrl);
+      console.log('Saved redirect path:', redirectUrl);
     }
     
-    // Редирект на страницу входа
     window.location.href = '/auth/login';
   };
 
@@ -126,6 +140,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CustomerContext.Provider value={value}>
+      <AuthHandler onAuthSuccess={handleAuthSuccess} />
       {children}
     </CustomerContext.Provider>
   );

@@ -3,29 +3,35 @@ import { exchangeCodeForTokens, setCustomerTokens } from '@/lib/shopify/customer
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
+  console.log('=== AUTH CALLBACK STARTED ===');
+  
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
   const error = searchParams.get('error');
 
-  // Проверяем наличие ошибок
+  console.log('Callback params:', { code: !!code, state: !!state, error });
+
   if (error) {
     console.error('OAuth error:', error);
     return NextResponse.redirect(new URL('/auth/error?error=' + error, request.url));
   }
 
-  // Проверяем наличие кода авторизации
   if (!code) {
     console.error('No authorization code received');
     return NextResponse.redirect(new URL('/auth/error?error=no_code', request.url));
   }
 
   try {
-    // Получаем state и codeVerifier из cookies
     const storedState = request.cookies.get('oauth_state')?.value;
     const codeVerifier = request.cookies.get('code_verifier')?.value;
 
-    // Проверяем state для защиты от CSRF
+    console.log('Stored values:', { 
+      hasStoredState: !!storedState, 
+      hasCodeVerifier: !!codeVerifier,
+      stateMatch: storedState === state 
+    });
+
     if (!storedState || storedState !== state) {
       console.error('Invalid state parameter');
       return NextResponse.redirect(new URL('/auth/error?error=invalid_state', request.url));
@@ -38,26 +44,26 @@ export async function GET(request: NextRequest) {
 
     // Обмениваем код на токены
     const redirectUri = new URL('/auth/callback', request.url).toString();
-    const tokens = await exchangeCodeForTokens(code, redirectUri, codeVerifier);
-
-    // Сохраняем токены в cookies
-    await setCustomerTokens(tokens);
-
-    // Получаем сохраненный URL для редиректа
-    const response = NextResponse.redirect(new URL('/', request.url));
+    console.log('Exchange tokens with redirect URI:', redirectUri);
     
-    // Устанавливаем cookie для триггера обновления состояния
-    response.cookies.set('auth_completed', 'true', {
-      httpOnly: false, // Важно! Чтобы JS мог прочитать
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 10, // 10 секунд достаточно
+    const tokens = await exchangeCodeForTokens(code, redirectUri, codeVerifier);
+    console.log('Tokens received:', { 
+      hasAccessToken: !!tokens.access_token,
+      hasRefreshToken: !!tokens.refresh_token 
     });
 
+    // Сохраняем токены
+    await setCustomerTokens(tokens);
+    console.log('Tokens saved to cookies');
+
+    // Редирект с флагом успешной авторизации
+    const response = NextResponse.redirect(new URL('/?auth=success', request.url));
+    
     // Очищаем временные cookies
     response.cookies.delete('oauth_state');
     response.cookies.delete('code_verifier');
 
+    console.log('=== AUTH CALLBACK COMPLETED ===');
     return response;
   } catch (error) {
     console.error('Error during token exchange:', error);
