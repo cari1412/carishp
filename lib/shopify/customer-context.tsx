@@ -2,7 +2,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, Suspense, useContext, useEffect, useState } from 'react';
 import { Customer } from './customer-account';
 
 interface CustomerContextType {
@@ -16,29 +16,34 @@ interface CustomerContextType {
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
 
-export function CustomerProvider({ children }: { children: React.ReactNode }) {
+// Отдельный компонент для обработки searchParams
+function AuthSuccessHandler({ onAuthSuccess }: { onAuthSuccess: () => void }) {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    if (searchParams.get('auth_success') === 'true') {
+      onAuthSuccess();
+      
+      // Убираем параметр из URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('auth_success');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [searchParams, onAuthSuccess]);
+  
+  return null;
+}
+
+// Основной компонент провайдера
+function CustomerProviderInner({ children }: { children: React.ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  // Проверяем авторизацию при загрузке и при изменении параметров
+  // Проверяем авторизацию при загрузке
   useEffect(() => {
     checkAuth();
   }, []);
-
-  // Проверяем параметр auth_success после редиректа
-  useEffect(() => {
-    if (searchParams.get('auth_success') === 'true') {
-      // Обновляем данные пользователя после успешной авторизации
-      checkAuth().then(() => {
-        // Убираем параметр из URL
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('auth_success');
-        window.history.replaceState({}, '', newUrl.toString());
-      });
-    }
-  }, [searchParams]);
 
   const checkAuth = async () => {
     try {
@@ -113,9 +118,17 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CustomerContext.Provider value={value}>
+      <Suspense fallback={null}>
+        <AuthSuccessHandler onAuthSuccess={checkAuth} />
+      </Suspense>
       {children}
     </CustomerContext.Provider>
   );
+}
+
+// Экспортируемый провайдер с Suspense boundary
+export function CustomerProvider({ children }: { children: React.ReactNode }) {
+  return <CustomerProviderInner>{children}</CustomerProviderInner>;
 }
 
 export function useCustomer() {
