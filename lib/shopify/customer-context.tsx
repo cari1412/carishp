@@ -1,8 +1,8 @@
 // lib/shopify/customer-context.tsx
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { createContext, Suspense, useContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { Customer } from './customer-account';
 
 interface CustomerContextType {
@@ -16,26 +16,7 @@ interface CustomerContextType {
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
 
-// Отдельный компонент для обработки searchParams
-function AuthSuccessHandler({ onAuthSuccess }: { onAuthSuccess: () => void }) {
-  const searchParams = useSearchParams();
-  
-  useEffect(() => {
-    if (searchParams.get('auth_success') === 'true') {
-      onAuthSuccess();
-      
-      // Убираем параметр из URL
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('auth_success');
-      window.history.replaceState({}, '', newUrl.toString());
-    }
-  }, [searchParams, onAuthSuccess]);
-  
-  return null;
-}
-
-// Основной компонент провайдера
-function CustomerProviderInner({ children }: { children: React.ReactNode }) {
+export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -43,13 +24,41 @@ function CustomerProviderInner({ children }: { children: React.ReactNode }) {
   // Проверяем авторизацию при загрузке
   useEffect(() => {
     checkAuth();
-  }, []);
+    
+    // Проверяем cookie auth_completed
+    const checkAuthCompleted = setInterval(() => {
+      const authCompleted = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth_completed='))
+        ?.split('=')[1];
+        
+      if (authCompleted === 'true') {
+        // Удаляем cookie
+        document.cookie = 'auth_completed=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        
+        // Обновляем состояние
+        checkAuth();
+        
+        // Получаем сохраненный путь для редиректа
+        const redirectPath = sessionStorage.getItem('auth_redirect');
+        if (redirectPath) {
+          sessionStorage.removeItem('auth_redirect');
+          router.push(redirectPath);
+        }
+      }
+    }, 500);
+    
+    // Очищаем интервал через 10 секунд
+    setTimeout(() => clearInterval(checkAuthCompleted), 10000);
+    
+    return () => clearInterval(checkAuthCompleted);
+  }, [router]);
 
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/customer/me', {
         credentials: 'include',
-        cache: 'no-store' // Важно для получения актуальных данных
+        cache: 'no-store'
       });
       
       if (response.ok) {
@@ -96,9 +105,8 @@ function CustomerProviderInner({ children }: { children: React.ReactNode }) {
       
       if (response.ok) {
         setCustomer(null);
-        // Редирект на главную после выхода
         router.push('/');
-        router.refresh(); // Обновляем серверные компоненты
+        router.refresh();
       }
     } catch (error) {
       console.error('Error during logout:', error);
@@ -118,17 +126,9 @@ function CustomerProviderInner({ children }: { children: React.ReactNode }) {
 
   return (
     <CustomerContext.Provider value={value}>
-      <Suspense fallback={null}>
-        <AuthSuccessHandler onAuthSuccess={checkAuth} />
-      </Suspense>
       {children}
     </CustomerContext.Provider>
   );
-}
-
-// Экспортируемый провайдер с Suspense boundary
-export function CustomerProvider({ children }: { children: React.ReactNode }) {
-  return <CustomerProviderInner>{children}</CustomerProviderInner>;
 }
 
 export function useCustomer() {

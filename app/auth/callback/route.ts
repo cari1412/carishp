@@ -43,11 +43,16 @@ export async function GET(request: NextRequest) {
     // Сохраняем токены в cookies
     await setCustomerTokens(tokens);
 
-    // Редиректим на страницу аккаунта с параметром для обновления состояния
-    const finalRedirectUrl = new URL('/account', request.url);
-    finalRedirectUrl.searchParams.set('auth_success', 'true');
+    // Получаем сохраненный URL для редиректа
+    const response = NextResponse.redirect(new URL('/', request.url));
     
-    const response = NextResponse.redirect(finalRedirectUrl);
+    // Устанавливаем cookie для триггера обновления состояния
+    response.cookies.set('auth_completed', 'true', {
+      httpOnly: false, // Важно! Чтобы JS мог прочитать
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 10, // 10 секунд достаточно
+    });
 
     // Очищаем временные cookies
     response.cookies.delete('oauth_state');
