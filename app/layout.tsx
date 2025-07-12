@@ -4,7 +4,7 @@ import { BreadcrumbNav } from 'components/layout/breadcrumbs';
 import { Navbar } from 'components/layout/navbar';
 import MobileBottomNav from 'components/layout/navbar/mobile-bottom-nav';
 import NotificationContainer from 'components/notifications/notification-container';
-import { WelcomeToast } from 'components/welcome-toast';
+
 import { GeistSans } from 'geist/font/sans';
 import { getCart } from 'lib/shopify';
 import { baseUrl } from 'lib/utils';
@@ -47,7 +47,7 @@ export default async function RootLayout({
               <main className="pb-20 md:pb-0">
                 {children}
                 <Toaster closeButton />
-                <WelcomeToast />
+                
               </main>
               {/* Mobile Bottom Navigation */}
               <MobileBottomNav />
