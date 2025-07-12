@@ -1,7 +1,7 @@
 // lib/shopify/customer-context.tsx
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Customer } from './customer-account';
 
@@ -15,25 +15,6 @@ interface CustomerContextType {
 }
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
-
-// Компонент для обработки auth параметра
-function AuthHandler({ onAuthSuccess }: { onAuthSuccess: () => void }) {
-  const searchParams = useSearchParams();
-  
-  useEffect(() => {
-    if (searchParams.get('auth') === 'success') {
-      console.log('Auth success detected, refreshing customer data...');
-      onAuthSuccess();
-      
-      // Убираем параметр из URL
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('auth');
-      window.history.replaceState({}, '', newUrl.toString());
-    }
-  }, [searchParams, onAuthSuccess]);
-  
-  return null;
-}
 
 export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -75,22 +56,31 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   // Проверяем авторизацию при загрузке
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
 
-  const handleAuthSuccess = useCallback(async () => {
-    console.log('Handling auth success...');
-    setIsLoading(true);
-    await checkAuth();
-    
-    // Проверяем редирект
-    const redirectPath = sessionStorage.getItem('auth_redirect');
-    console.log('Redirect path from session:', redirectPath);
-    
-    if (redirectPath && redirectPath !== '/') {
-      sessionStorage.removeItem('auth_redirect');
-      router.push(redirectPath);
-    } else {
-      router.push('/account');
+    // Проверяем URL параметры без useSearchParams
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('auth') === 'success') {
+        console.log('Auth success detected in URL');
+        
+        // Убираем параметр из URL
+        urlParams.delete('auth');
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        window.history.replaceState({}, '', newUrl);
+        
+        // Обновляем данные и редиректим
+        checkAuth().then(() => {
+          const redirectPath = sessionStorage.getItem('auth_redirect');
+          console.log('Redirect path from session:', redirectPath);
+          
+          if (redirectPath && redirectPath !== '/') {
+            sessionStorage.removeItem('auth_redirect');
+            router.push(redirectPath);
+          } else {
+            router.push('/account');
+          }
+        });
+      }
     }
   }, [checkAuth, router]);
 
@@ -140,7 +130,6 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CustomerContext.Provider value={value}>
-      <AuthHandler onAuthSuccess={handleAuthSuccess} />
       {children}
     </CustomerContext.Provider>
   );
