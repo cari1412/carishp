@@ -1,78 +1,54 @@
+'use client';
+
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
-interface AuthErrorPageProps {
-  searchParams: Promise<{
-    error?: string;
-  }>;
-}
+export default function AuthErrorPage() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
 
-const errorMessages: Record<string, string> = {
-  no_code: 'Код авторизации не получен',
-  invalid_state: 'Неверный параметр состояния',
-  no_verifier: 'Код верификации не найден',
-  token_exchange_failed: 'Не удалось обменять код на токены',
-  login_failed: 'Ошибка при инициации входа',
-  access_denied: 'Доступ запрещен',
-  default: 'Произошла ошибка авторизации',
-};
-
-export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps) {
-  const params = await searchParams;
-  const errorCode = params.error || 'default';
-  const errorMessage = errorMessages[errorCode] || errorMessages.default;
+  const getErrorMessage = (error: string | null) => {
+    switch (error) {
+      case 'login_failed':
+        return 'Failed to initiate login process. Please try again.';
+      case 'no_code':
+        return 'Authorization code not received. Please try logging in again.';
+      case 'invalid_state':
+        return 'Security validation failed. Please try logging in again.';
+      case 'no_verifier':
+        return 'Authentication verification failed. Please try logging in again.';
+      case 'token_exchange_failed':
+        return 'Failed to complete authentication. Please try again.';
+      default:
+        return 'An unexpected error occurred during authentication.';
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 text-red-600">
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 48 48"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Ошибка авторизации
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            {errorMessage}
+    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+      <div className="max-w-md w-full bg-white dark:bg-black rounded-lg shadow-lg p-8">
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Authentication Error</h1>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          {getErrorMessage(error)}
+        </p>
+        {error && (
+          <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+            Error code: {error}
           </p>
-          {errorCode && (
-            <p className="mt-1 text-xs text-gray-500">
-              Код ошибки: {errorCode}
-            </p>
-          )}
-        </div>
-
+        )}
         <div className="space-y-4">
-          <Link
+          <Link 
             href="/auth/login"
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="block w-full text-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
-            Попробовать снова
+            Try Again
           </Link>
-          
-          <Link
+          <Link 
             href="/"
-            className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="block w-full text-center px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
-            Вернуться на главную
+            Go to Home
           </Link>
-        </div>
-
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Если проблема повторяется, обратитесь в поддержку
-          </p>
         </div>
       </div>
     </div>
