@@ -1,11 +1,11 @@
-'use client';
-
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function AuthErrorPage() {
-  const searchParams = useSearchParams();
-  const error = searchParams.get('error');
+function AuthErrorContent() {
+  // Используем URLSearchParams на клиенте для получения параметров
+  const error = typeof window !== 'undefined' 
+    ? new URLSearchParams(window.location.search).get('error')
+    : null;
 
   const getErrorMessage = (error: string | null) => {
     switch (error) {
@@ -52,5 +52,17 @@ export default function AuthErrorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">Loading...</div>
+      </div>
+    }>
+      <AuthErrorContent />
+    </Suspense>
   );
 }
