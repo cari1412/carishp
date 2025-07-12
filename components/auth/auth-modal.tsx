@@ -9,7 +9,7 @@ import { Fragment } from 'react';
 
 interface AuthModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onCloseAction: () => void; // Переименовано из onClose
   title?: string;
   description?: string;
   redirectTo?: string; // URL для редиректа после входа
@@ -17,7 +17,7 @@ interface AuthModalProps {
 
 export default function AuthModal({ 
   isOpen, 
-  onClose, 
+  onCloseAction, // Переименовано из onClose
   title = "Sign in to continue",
   description = "Create an account or sign in to access this feature"
 }: AuthModalProps) {
@@ -44,7 +44,7 @@ export default function AuthModal({
 
   return (
     <Transition show={isOpen} as={Fragment}>
-      <Dialog onClose={onClose} className="relative z-50">
+      <Dialog onClose={onCloseAction} className="relative z-50">
         {/* Backdrop */}
         <Transition.Child
           as={Fragment}
@@ -77,7 +77,7 @@ export default function AuthModal({
                     {title}
                   </Dialog.Title>
                   <button
-                    onClick={onClose}
+                    onClick={onCloseAction}
                     className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-lg transition-colors"
                   >
                     <X className="w-5 h-5" />

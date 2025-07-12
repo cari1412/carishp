@@ -1,7 +1,7 @@
 // components/layout/navbar/mobile-bottom-nav.tsx
 'use client';
 
-import AuthModal from '@/app/auth/auth-modal';
+import AuthModal from '@/components/auth/auth-modal';
 import { useCustomer } from '@/lib/shopify/customer-context';
 import {
   HeartIcon,
@@ -179,7 +179,7 @@ export default function MobileBottomNav() {
       {/* Auth Modal */}
       <AuthModal 
         isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)}
+        onCloseAction={() => setShowAuthModal(false)}
         title={authModalProps.title}
         description={authModalProps.description}
       />

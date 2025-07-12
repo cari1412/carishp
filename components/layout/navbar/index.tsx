@@ -1,7 +1,7 @@
 // components/layout/navbar/index.tsx
 'use client';
 
-import AuthModal from '@/app/auth/auth-modal';
+import AuthModal from '@/components/auth/auth-modal';
 import { useCustomer } from '@/lib/shopify/customer-context';
 import { useCart } from 'components/cart/cart-context';
 import CartModal from 'components/cart/modal';
@@ -56,7 +56,7 @@ export function Navbar() {
   const [isLoadingCollections, setIsLoadingCollections] = useState<boolean>(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { cart } = useCart();
-  const { customer, isAuthenticated, logout } = useCustomer();
+  const { customer, isAuthenticated, logout, isLoading } = useCustomer();
   const cartItemsCount = cart?.lines.reduce((total, line) => total + line.quantity, 0) || 0;
 
   // Load collections when menu opens
@@ -240,7 +240,7 @@ export function Navbar() {
                   >
                     <User className="w-8 h-8 mb-1" />
                     <span className="text-xs font-medium">
-                      {isAuthenticated ? customer?.firstName || 'Account' : 'Login'}
+                      {isLoading ? 'Loading...' : (isAuthenticated ? customer?.firstName || 'Account' : 'Login')}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -326,7 +326,7 @@ export function Navbar() {
       {/* Auth Modal */}
       <AuthModal 
         isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)}
+        onCloseAction={() => setShowAuthModal(false)}
       />
     </>
   );

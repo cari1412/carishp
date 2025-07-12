@@ -1,6 +1,6 @@
 'use client';
 
-import AuthModal from '@/app/auth/auth-modal';
+import AuthModal from '@/components/auth/auth-modal';
 import { useCustomer } from '@/lib/shopify/customer-context';
 import { Dialog, Transition } from '@headlessui/react';
 import { ShoppingCartIcon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -241,7 +241,7 @@ export default function CartModal() {
       {/* Auth Modal */}
       <AuthModal 
         isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)}
+        onCloseAction={() => setShowAuthModal(false)}
         title="Sign in to checkout"
         description="Create an account or sign in to complete your purchase"
       />

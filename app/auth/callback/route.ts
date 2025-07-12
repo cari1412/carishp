@@ -43,9 +43,11 @@ export async function GET(request: NextRequest) {
     // Сохраняем токены в cookies
     await setCustomerTokens(tokens);
 
-    // Создаем ответ с редиректом на страницу аккаунта
-    // Страница аккаунта сама проверит наличие pending_checkout или auth_redirect
-    const response = NextResponse.redirect(new URL('/account', request.url));
+    // Редиректим на страницу аккаунта с параметром для обновления состояния
+    const finalRedirectUrl = new URL('/account', request.url);
+    finalRedirectUrl.searchParams.set('auth_success', 'true');
+    
+    const response = NextResponse.redirect(finalRedirectUrl);
 
     // Очищаем временные cookies
     response.cookies.delete('oauth_state');
@@ -56,9 +58,4 @@ export async function GET(request: NextRequest) {
     console.error('Error during token exchange:', error);
     return NextResponse.redirect(new URL('/auth/error?error=token_exchange_failed', request.url));
   }
-}
-
-// Обработка POST запросов (если нужно)
-export async function POST(request: NextRequest) {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }

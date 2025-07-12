@@ -1,17 +1,15 @@
 // app/api/customer/me/route.ts
-import { getCurrentCustomer, getCustomerTokens } from '@/lib/shopify/customer-account';
+import { getCurrentCustomer } from '@/lib/shopify/customer-account';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const tokens = await getCustomerTokens();
+    const customer = await getCurrentCustomer();
     
-    if (!tokens) {
+    if (!customer) {
       return NextResponse.json({ customer: null }, { status: 200 });
     }
 
-    const customer = await getCurrentCustomer();
-    
     return NextResponse.json({ customer }, { status: 200 });
   } catch (error) {
     console.error('Error fetching customer:', error);
@@ -21,3 +19,7 @@ export async function GET() {
     );
   }
 }
+
+// Отключаем кеширование для этого роута
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;

@@ -1,6 +1,6 @@
 'use client';
 
-import AuthModal from '@/app/auth/auth-modal';
+import AuthModal from '@/components/auth/auth-modal';
 import { useCustomer } from '@/lib/shopify/customer-context';
 import { motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
@@ -57,7 +57,7 @@ export default function WishlistIcon() {
       {/* Auth Modal */}
       <AuthModal 
         isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)}
+        onCloseAction={() => setShowAuthModal(false)}
         title="Sign in to view your wishlist"
         description="Create an account or sign in to save and sync your favorite items across all your devices"
       />
