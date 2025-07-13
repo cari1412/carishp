@@ -186,7 +186,7 @@ export async function getCustomer(accessToken: string): Promise<Customer | null>
    query getCustomer {
      customer {
        id
-       email: emailAddress {
+       emailAddress {
          emailAddress
        }
        firstName
@@ -194,8 +194,6 @@ export async function getCustomer(accessToken: string): Promise<Customer | null>
        phoneNumber {
          phoneNumber
        }
-       createdAt
-       updatedAt
      }
    }
  `;
@@ -213,12 +211,12 @@ export async function getCustomer(accessToken: string): Promise<Customer | null>
      const customer = response.data.customer;
      return {
        id: customer.id,
-       email: customer.email?.emailAddress || '',
+       email: customer.emailAddress?.emailAddress || '',
        firstName: customer.firstName,
        lastName: customer.lastName,
        phone: customer.phoneNumber?.phoneNumber,
-       createdAt: customer.createdAt,
-       updatedAt: customer.updatedAt,
+       createdAt: new Date().toISOString(), // Используем текущую дату как заглушку
+       updatedAt: new Date().toISOString(), // Используем текущую дату как заглушку
      };
    }
    
