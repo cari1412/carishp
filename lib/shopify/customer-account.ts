@@ -55,11 +55,12 @@ export async function getAuthorizationUrl(redirectUri: string): Promise<{
  const codeVerifier = generateCodeVerifier();
  const codeChallenge = await generateCodeChallenge(codeVerifier);
  
+ // ВАЖНО: Добавляем все необходимые scopes для Customer Account API
  const params = new URLSearchParams({
    client_id: CLIENT_ID,
    response_type: 'code',
    redirect_uri: redirectUri,
-   scope: 'openid email',
+   scope: 'customer-account-api:full', // Изменено: добавлен полный доступ к Customer Account API
    state,
    code_challenge: codeChallenge,
    code_challenge_method: 'S256',
@@ -142,10 +143,10 @@ export async function customerAccountFetch<T>(
  console.log('Making GraphQL request to:', API_URL);
  console.log('Access token prefix:', accessToken.substring(0, 10));
  
- // Пробуем разные варианты заголовков
+ // Используем правильный формат заголовка Authorization без "Bearer"
  const headers: HeadersInit = {
    'Content-Type': 'application/json',
-   'Authorization': accessToken, // Без "Bearer"
+   'Authorization': accessToken, // Customer Account API ожидает токен без префикса "Bearer"
  };
  
  console.log('Request headers:', headers);
@@ -166,35 +167,6 @@ export async function customerAccountFetch<T>(
  console.log('GraphQL response:', responseText);
 
  if (!response.ok) {
-   // Если не работает без Bearer, пробуем с Bearer
-   if (response.status === 401) {
-     console.log('Trying with Bearer prefix...');
-     const response2 = await fetch(API_URL, {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/json',
-         'Authorization': `Bearer ${accessToken}`,
-       },
-       body: JSON.stringify({
-         query,
-         variables,
-       }),
-     });
-     
-     const responseText2 = await response2.text();
-     console.log('Second attempt response:', response2.status, responseText2);
-     
-     if (!response2.ok) {
-       throw new Error(`Customer Account API error: ${response2.statusText} - ${responseText2}`);
-     }
-     
-     const data2 = JSON.parse(responseText2);
-     if (data2.errors) {
-       throw new Error(`GraphQL error: ${data2.errors[0]?.message}`);
-     }
-     return data2;
-   }
-   
    throw new Error(`Customer Account API error: ${response.statusText} - ${responseText}`);
  }
 
@@ -214,10 +186,14 @@ export async function getCustomer(accessToken: string): Promise<Customer | null>
    query getCustomer {
      customer {
        id
-       email
+       email: emailAddress {
+         emailAddress
+       }
        firstName
        lastName
-       phone
+       phoneNumber {
+         phoneNumber
+       }
        createdAt
        updatedAt
      }
@@ -227,11 +203,26 @@ export async function getCustomer(accessToken: string): Promise<Customer | null>
  try {
    console.log('Fetching customer data...');
    const response = await customerAccountFetch<{
-     data: { customer: Customer };
+     data: { customer: any };
    }>(query, {}, accessToken);
 
    console.log('Customer response:', JSON.stringify(response, null, 2));
-   return response.data.customer;
+   
+   if (response.data?.customer) {
+     // Преобразуем ответ в нужный формат
+     const customer = response.data.customer;
+     return {
+       id: customer.id,
+       email: customer.email?.emailAddress || '',
+       firstName: customer.firstName,
+       lastName: customer.lastName,
+       phone: customer.phoneNumber?.phoneNumber,
+       createdAt: customer.createdAt,
+       updatedAt: customer.updatedAt,
+     };
+   }
+   
+   return null;
  } catch (error) {
    console.error('Error fetching customer:', error);
    return null;
