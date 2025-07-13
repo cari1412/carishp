@@ -10,8 +10,10 @@ import { NextRequest, NextResponse } from 'next/server';
 // DELETE - удаление адреса
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+  
   try {
     const tokens = await getCustomerTokensV2();
     
@@ -29,7 +31,7 @@ export async function DELETE(
           userErrors: Array<{ field: string[]; message: string }>;
         };
       };
-    }>(DELETE_ADDRESS, { id: params.id }, tokens.access_token);
+    }>(DELETE_ADDRESS, { id }, tokens.access_token);
 
     const userErrors = response.data?.customerAddressDelete?.userErrors;
     if (userErrors && userErrors.length > 0) {
@@ -52,8 +54,10 @@ export async function DELETE(
 // PUT - обновление адреса
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+  
   try {
     const tokens = await getCustomerTokensV2();
     
@@ -73,7 +77,7 @@ export async function PUT(
           userErrors: Array<{ field: string[]; message: string }>;
         };
       };
-    }>(UPDATE_ADDRESS, { id: params.id, address: body }, tokens.access_token);
+    }>(UPDATE_ADDRESS, { id, address: body }, tokens.access_token);
 
     const userErrors = response.data?.customerAddressUpdate?.userErrors;
     if (userErrors && userErrors.length > 0) {

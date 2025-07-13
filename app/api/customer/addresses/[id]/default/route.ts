@@ -1,15 +1,16 @@
 // app/api/customer/addresses/[id]/default/route.ts
 import {
-    customerAccountFetch,
-    getCustomerTokensV2,
-    UPDATE_DEFAULT_ADDRESS
+  customerAccountFetch,
+  getCustomerTokensV2,
+  UPDATE_DEFAULT_ADDRESS
 } from '@/lib/shopify/customer-account';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const tokens = await getCustomerTokensV2();
     
@@ -29,7 +30,7 @@ export async function PUT(
           userErrors: Array<{ field: string[]; message: string }>;
         };
       };
-    }>(UPDATE_DEFAULT_ADDRESS, { addressId: params.id }, tokens.access_token);
+    }>(UPDATE_DEFAULT_ADDRESS, { addressId: id }, tokens.access_token);
 
     const userErrors = response.data?.customerDefaultAddressUpdate?.userErrors;
     if (userErrors && userErrors.length > 0) {
