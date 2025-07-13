@@ -59,7 +59,7 @@ export async function getAuthorizationUrl(redirectUri: string): Promise<{
    client_id: CLIENT_ID,
    response_type: 'code',
    redirect_uri: redirectUri,
-   scope: 'openid email',
+   scope: 'openid email https://api.customers.com/auth/customer.graphql',
    state,
    code_challenge: codeChallenge,
    code_challenge_method: 'S256',
